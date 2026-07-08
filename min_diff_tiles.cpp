@@ -1,68 +1,63 @@
-/* Given N tiles each with (width, height), select exactly K tiles to minimize the maximum difference between any two selected tiles. Difference between tiles = max(|w1-w2|, |h1-h2|).
-
-Input:  n k / w1 h1 / w2 h2 / ...
-Output: ans
-📥 Sample Input
-STDIN
-
-4 3
-1 5
-3 3
-4 4
-6 2
-
-📤 Sample Output
-STDOUT
-
-3
-*/
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <cstdio>
+#include <bits/stdc++.h>
 using namespace std;
 typedef long long ll;
 
-ll n, k;
-vector<pair<ll, ll>> v;
+int n, k;
+vector<pair<ll,ll>> v;
+vector<ll> H;
 
-//windowed checking of the mid.
+struct SegTree {
+    vector<int> mx, lz;
+    void init(int n){ mx.assign(4*n,0); lz.assign(4*n,0); }
+    void push(int node){
+        if(lz[node]){
+            for(int c=node*2;c<=node*2+1;c++){ mx[c]+=lz[node]; lz[c]+=lz[node]; }
+            lz[node]=0;
+        }
+    }
+    void upd(int node,int l,int r,int ql,int qr,int val){
+        if(qr<l||r<ql) return;
+        if(ql<=l&&r<=qr){ mx[node]+=val; lz[node]+=val; return; }
+        push(node);
+        int m=(l+r)/2;
+        upd(node*2,l,m,ql,qr,val);
+        upd(node*2+1,m+1,r,ql,qr,val);
+        mx[node]=max(mx[node*2],mx[node*2+1]);
+    }
+} seg;
 
-bool check(ll mid) {
-	int j = 0;
-	for (int i = 0; i < n; i++) {
-		while (j < i && (v[i].first - v[j].first > mid)) j++;
-		if (i - j + 1 >= k) {
-			vector<int> h;
-			for (int idx = j; idx <= i; idx++) h.push_back(v[idx].second);
-			sort(h.begin(), h.end());
-			for (int i = 0; i + k - 1 < (int)h.size(); i++)
-				if (h[i + k - 1] - h[i] <= mid) return true;
-		}
-	}
-	return false;
+bool check(ll mid){
+    seg.init(n);
+    int j=0; bool found=false;
+    for(int i=0;i<n && !found;i++){
+        int lo=lower_bound(H.begin(),H.end(), v[i].second-mid)-H.begin();
+        int hi=upper_bound(H.begin(),H.end(), v[i].second)-H.begin()-1;
+        if(lo<=hi) seg.upd(1,0,n-1,lo,hi,1);
+        while(j<i && v[i].first-v[j].first>mid){
+            int lo2=lower_bound(H.begin(),H.end(), v[j].second-mid)-H.begin();
+            int hi2=upper_bound(H.begin(),H.end(), v[j].second)-H.begin()-1;
+            if(lo2<=hi2) seg.upd(1,0,n-1,lo2,hi2,-1);
+            j++;
+        }
+        if(i-j+1>=k && seg.mx[1]>=k) found=true;
+    }
+    return found;
 }
 
-int main() {
-	ios_base::sync_with_stdio(false);
-	cin.tie(NULL);
-	cin >> n >> k;
-	v.resize(n);
+int main(){
+    cin>>n>>k;
+    v.resize(n);
+    for(auto &p:v) cin>>p.first>>p.second;
+    sort(v.begin(),v.end());
+    H.resize(n);
+    for(int i=0;i<n;i++) H[i]=v[i].second;
+    sort(H.begin(),H.end());
 
-	for (int i = 0; i < n; i++) 
-		cin >> v[i].first >> v[i].second;
-	sort(v.begin(), v.end()); //sort acc to widths
-	ll lo = 0, hi = 1e9, ans = hi;
-    
-	while (lo <= hi) {
-		ll mid = lo + (hi - lo) / 2;
-		if (check(mid)) {
-			ans = mid;
-			hi = mid - 1;
-		}
-		else {
-			lo = mid + 1;
-		}
-	}
-	cout << ans << "\n";
+    ll lo=0, hi=1e9, ans=hi;
+    while(lo<=hi){
+        ll mid=lo+(hi-lo)/2;
+        if(check(mid)){ ans=mid; hi=mid-1; }
+        else lo=mid+1;
+    }
+    cout<<ans<<"\n";
 }
