@@ -40,23 +40,9 @@ int solve(int u) {
 	if (childSum.size() == 0) {
 		return value[u];
 	}
-	int minCost = INT_MAX;
-	int totalSum = 0;
-	for (auto target : childSum) {
-		int cost = 0;
-		for (auto s : childSum) {
-			if (s < target) {
-				cost = INT_MAX;
-				break;
-			}
-			cost += s - target;
-		}
-		if (cost < minCost) {
-			minCost = cost;
-			totalSum = target * childSum.size();
-		}
-	}
-	return totalSum+value[u];
+	int target = *min_element(childSum.begin(),childSum.end());
+    int totalSum = target*childSum.size();
+    return totalSum+value[u];
 }
 
 
